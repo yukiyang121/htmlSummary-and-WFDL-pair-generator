@@ -1,0 +1,81 @@
+{
+  "manifest_version": 3,
+  "name": "(HTMLsummary, WDFL) generater",
+  "version": "1.0.3",
+  "description": "Chrome extension that connects to WebSocket and handles WFDL validation requests",
+
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "tabs",
+    "storage"
+  ],
+
+  "host_permissions": [
+    "http://localhost:3001/*",
+    "https://webflow.com/*",
+    "https://*.webflow.com/*",
+    "https://*.design.webflow.com/*",
+    "https://*.wfdev.io/*",
+    "https://*.design.wfdev.io/*",
+    "https://wfdl-validator-worker.webflowlabs.workers.dev/*"
+  ],
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "WFDL Validator",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "content_scripts": [
+    {
+      "matches": [
+        "https://webflow.com/*",
+        "https://*.webflow.com/*",
+        "https://*.design.webflow.com/*",
+        "https://*.wfdev.io/*"
+      ],
+      "js": [
+        "config.js",
+        "utils/logger.js",
+        "content.js"
+      ],
+      "run_at": "document_end",
+      "all_frames": false
+    }
+  ],
+
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "config.js",
+        "utils/logger.js",
+        "utils/websocket-manager.js"
+      ],
+      "matches": [
+        "https://webflow.com/*",
+        "https://*.webflow.com/*",
+        "https://*.design.webflow.com/*",
+        "https://*.wfdev.io/*"
+      ]
+    }
+  ],
+
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+
+  "author": "WFDL Validator Team"
+}

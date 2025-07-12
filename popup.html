@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>(HTMLsummary, WDFL) generater </title>
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 15px;
+        width: 450px;
+        height: 600px;
+        margin: 0;
+        background-color: #f8f9fa;
+      }
+      .header {
+        background: linear-gradient(135deg, #333 0%, #111 100%);
+        color: white;
+        padding: 15px;
+        margin: -15px -15px 15px -15px;
+        border-radius: 0 0 8px 8px;
+        text-align: center;
+      }
+      .header h2 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+      }
+      .header p {
+        margin: 5px 0 0 0;
+        font-size: 12px;
+        opacity: 0.9;
+      }
+      .connection-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 15px;
+        padding: 10px;
+        background: white;
+        border-radius: 6px;
+        border: 1px solid #e9ecef;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      .status-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background-color: #dc3545;
+        animation: pulse 2s infinite;
+      }
+      .status-indicator.connected {
+        background-color: #28a745;
+      }
+      .status-indicator.connecting {
+        background-color: #ffc107;
+      }
+      @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+      }
+      .environment-indicator {
+        background: white;
+        border-radius: 6px;
+        padding: 10px;
+        margin-bottom: 15px;
+        border: 1px solid #e9ecef;
+      }
+      .environment-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        margin-bottom: 6px;
+      }
+      .environment-badge.production {
+        color: #28a745;
+      }
+      .environment-badge.development {
+        color: #ffc107;
+      }
+      .environment-badge::before {
+        content: '';
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: currentColor;
+      }
+      .environment-url {
+        font-size: 11px;
+        color: #6c757d;
+        font-family: 'Courier New', monospace;
+        word-break: break-all;
+        line-height: 1.3;
+      }
+      .controls {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+      button {
+        padding: 10px 15px;
+        font-weight: 600;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 14px;
+      }
+      button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      }
+      button:disabled {
+        background-color: #6c757d;
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+      }
+      .btn-primary {
+        background-color: #007bff;
+        color: white;
+        flex: 1;
+      }
+      .btn-primary:hover:not(:disabled) {
+        background-color: #0056b3;
+      }
+      .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+        flex: 1;
+      }
+      .btn-secondary:hover:not(:disabled) {
+        background-color: #545b62;
+      }
+      .activity-section {
+        background: white;
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 15px;
+        border: 1px solid #e9ecef;
+      }
+      .activity-section h3 {
+        margin: 0 0 10px 0;
+        font-size: 16px;
+        color: #495057;
+      }
+      .activity-log {
+        max-height: 200px;
+        overflow-y: auto;
+        border: 1px solid #e9ecef;
+        border-radius: 4px;
+        padding: 10px;
+        background-color: #f8f9fa;
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+      }
+      .log-entry {
+        margin-bottom: 8px;
+        padding: 4px;
+        border-radius: 3px;
+      }
+      .log-entry.info {
+        background-color: #d1ecf1;
+        color: #0c5460;
+      }
+      .log-entry.success {
+        background-color: #d4edda;
+        color: #155724;
+      }
+      .log-entry.error {
+        background-color: #f8d7da;
+        color: #721c24;
+      }
+      .log-entry.warning {
+        background-color: #fff3cd;
+        color: #856404;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 10px;
+      }
+      .stat-item {
+        text-align: center;
+        padding: 10px;
+        background: white;
+        border-radius: 6px;
+        border: 1px solid #e9ecef;
+      }
+      .stat-value {
+        font-size: 20px;
+        font-weight: bold;
+        color: #495057;
+      }
+      .stat-label {
+        font-size: 12px;
+        color: #6c757d;
+        margin-top: 4px;
+      }
+      .test-section {
+        background: white;
+        border-radius: 8px;
+        padding: 15px;
+        border: 1px solid #e9ecef;
+      }
+      .test-section h3 {
+        margin: 0 0 10px 0;
+        font-size: 16px;
+        color: #495057;
+      }
+      textarea {
+        width: 100%;
+        height: 120px;
+        padding: 10px;
+        font-family: 'Courier New', monospace;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        resize: vertical;
+        box-sizing: border-box;
+        font-size: 12px;
+      }
+      .btn-test {
+        background-color: #28a745;
+        color: white;
+        margin-top: 10px;
+      }
+      .btn-test:hover:not(:disabled) {
+        background-color: #218838;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h2>(HTMLsummary, WDFL) generater</h2>
+      <p>Osmosis - Cloudflare Worker - Designer API</p>
+    </div>
+
+    <div class="connection-status">
+      <div id="statusIndicator" class="status-indicator"></div>
+      <div>
+        <div id="connectionStatus">Disconnected</div>
+        <div id="extensionId" style="font-size: 11px; color: #6c757d;"></div>
+      </div>
+    </div>
+
+    <div class="environment-indicator">
+      <div class="environment-badge" id="environmentBadge">
+        <span id="environmentText">Production</span>
+      </div>
+      <div class="environment-url" id="environmentUrl"></div>
+    </div>
+
+    <div class="controls">
+      <button id="connectBtn" class="btn-primary">Connect</button>
+      <button id="disconnectBtn" class="btn-secondary" disabled>Disconnect</button>
+    </div>
+
+    <div class="activity-section">
+      <h3>Activity Log</h3>
+      <div id="activityLog" class="activity-log"></div>
+      <div class="stats">
+        <div class="stat-item">
+          <div id="requestCount" class="stat-value">0</div>
+          <div class="stat-label">Requests</div>
+        </div>
+        <div class="stat-item">
+          <div id="successCount" class="stat-value">0</div>
+          <div class="stat-label">Success</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h3>Test WFDL Validation</h3>
+      <p style="font-size: 12px; color: #6c757d; margin: 0 0 10px 0;">
+        Enter WFDL string to validate with wf.validateWFDL() on the Designer page.
+      </p>
+      <textarea id="testWfdl" placeholder="Enter WFDL string here...">this is a simple string test;</textarea>
+      <div style="margin-top: 10px;">
+        <button id="testBtn" class="btn-test" style="width: 100%;">Send Test Request</button>
+      </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="utils/logger.js"></script>
+    <script src="utils/websocket-manager.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>
