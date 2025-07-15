@@ -6,6 +6,7 @@
       body {
         font-family: sans-serif;
         padding: 15px;
+        padding-bottom: 40px;
         width: 450px;
         height: 600px;
         margin: 0;
@@ -232,6 +233,30 @@
       .btn-test:hover:not(:disabled) {
         background-color: #218838;
       }
+      .component-section {
+        background: white;
+        border-radius: 8px;
+        padding: 15px;
+        margin-top: 15px;
+        border: 1px solid #e9ecef;
+      }
+      .component-section h3 {
+        margin: 0 0 10px 0;
+        font-size: 16px;
+        color: #495057;
+      }
+      .component-list {
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        white-space: pre-wrap;
+        background-color: #f1f3f5;
+        padding: 10px;
+        border-radius: 6px;
+        border: 1px solid #dee2e6;
+        max-height: 400px;
+        overflow-y: auto;
+      }
+      
     </style>
   </head>
   <body>
@@ -285,6 +310,21 @@
         <button id="testBtn" class="btn-test" style="width: 100%;">Send Test Request</button>
       </div>
     </div>
+
+    <div class="test-section">
+      <h3>Upload Screenshot</h3>
+      <input type="file" id="screenshotInput" accept="image/*" />
+      <button id="sendToGemini" class="btn-test">Generate Summary</button>
+    </div>
+    <pre id="summaryOutput" style="margin-top: 15px; font-size: 12px;"></pre>
+
+    <div class="component-section">
+      <h3>Extracted Components</h3>
+      <div id="componentList" class="component-list">
+        <!-- JavaScript will populate this -->
+      </div>
+    </div>
+
 
     <script src="config.js"></script>
     <script src="utils/logger.js"></script>

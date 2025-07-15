@@ -246,7 +246,7 @@ class WFDLValidatorPopup {
         requestId: requestId,
         wfdl: wfdl,
         validationResult: result.data, // The actual validation result
-        source: 'wf.validateWFDL',
+        source: 'wf.exportTrainingData',
         context: {
           url: tab.url,
           title: tab.title,
@@ -337,6 +337,7 @@ class WFDLValidatorPopup {
   /**
    * Test validation with user input
    */
+  // this prints stuff in the activity logger
   async testValidation() {
     const wfdlString = document.getElementById('testWfdl').value.trim();
 
@@ -359,10 +360,54 @@ class WFDLValidatorPopup {
       this.successCount++;
       this.updateStats();
 
+      // this.logger.info(`components: ${JSON.stringify(result.validationResult.components, null, 2)}` )
+      this.displayComponents(result.validationResult.components || {});
+
     } catch (error) {
       this.logger.error(`Test validation failed: ${error.message}`);
     }
   }
+
+  displayComponents(components) {
+  const container = document.getElementById('componentList');
+  if (!container) {
+    this.logger.warn('Component list container not found');
+    return;
+  }
+
+  container.innerHTML = ''; // Clear previous entries
+
+  const entries = Object.entries(components);
+  if (entries.length === 0) {
+    container.textContent = 'No components returned.';
+    return;
+  }
+
+  entries.forEach(([cid, componentCode], index) => {
+    const wrapper = document.createElement('div');
+    wrapper.style.marginBottom = '20px';
+
+    const header = document.createElement('div');
+    header.style.fontWeight = 'bold';
+    header.style.marginBottom = '5px';
+    header.textContent = `Component ${index + 1} \u2014 cid: ${cid}`;
+    wrapper.appendChild(header);
+
+    const codeBlock = document.createElement('pre');
+    codeBlock.textContent = componentCode;
+    codeBlock.style.whiteSpace = 'pre-wrap';
+    codeBlock.style.background = '#ffffff';
+    codeBlock.style.border = '1px solid #ced4da';
+    codeBlock.style.borderRadius = '6px';
+    codeBlock.style.padding = '10px';
+    codeBlock.style.fontSize = '11px';
+    codeBlock.style.maxHeight = '250px';
+    codeBlock.style.overflowY = 'auto';
+
+    wrapper.appendChild(codeBlock);
+    container.appendChild(wrapper);
+  });
+}
 
 
 
@@ -448,6 +493,7 @@ class WFDLValidatorPopup {
 
 // Function that will be injected and executed in the target page
 // This bypasses CSP by creating a script element directly in the DOM
+// This function directly changes the console. 
 function getWFDL(wfdlString) {
   try {
     // Create a script element to inject the code
@@ -535,3 +581,35 @@ document.addEventListener('DOMContentLoaded', () => {
     document.head.appendChild(scriptElement);
   });
 });
+
+
+// process input image
+document.getElementById('sendToGemini').addEventListener('click', async () => {
+  const fileInput = document.getElementById('screenshotInput');
+  const output = document.getElementById('summaryOutput');
+
+  if (!fileInput.files.length) {
+    alert('Please upload a screenshot first.');
+    return;
+  }
+
+  const file = fileInput.files[0];
+  const reader = new FileReader();
+  reader.onload = async () => {
+    const base64Image = reader.result; // data:image/png;base64,...
+
+    output.textContent = "Calling Gemini...";
+
+    try {
+      const summary = await callGeminiWithScreenshot(base64Image);
+      output.textContent = summary || "No summary returned.";
+    } catch (err) {
+      output.textContent = "Error: " + err.message;
+    }
+  };
+  reader.readAsDataURL(file);
+});
+
+async function callGeminiWithScreenshot(base64Image) {
+  return "Mock summary: A hero section with a heading and a button.";
+}
