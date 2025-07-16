@@ -600,9 +600,13 @@ document.getElementById('sendToGemini').addEventListener('click', async () => {
 
     output.textContent = "Calling Gemini...";
 
+    // if (base64Image){
+    //   output.textContent = "has image!!";
+    // }
+
     try {
       const summary = await callGeminiWithScreenshot(base64Image);
-      output.textContent = summary || "No summary returned.";
+      output.textContent = summary || "No summary returned."; //this overwrites "Calling Gemini"
     } catch (err) {
       output.textContent = "Error: " + err.message;
     }
@@ -610,6 +614,29 @@ document.getElementById('sendToGemini').addEventListener('click', async () => {
   reader.readAsDataURL(file);
 });
 
+
 async function callGeminiWithScreenshot(base64Image) {
-  return "Mock summary: A hero section with a heading and a button.";
+  // Check and preview the image in the console
+
+  // if (base64Image) {
+  //   const img = new Image();
+  //   img.src = base64Image;
+  //   return JSON.stringify({ base64Image });
+  // }
+
+  const response = await fetch("http://localhost:3000/generate-summary", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ base64Image })
+  });
+
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(`Gemini call failed: ${err}`);
+  }
+
+  const data = await response.json();
+  return data.summary;
 }

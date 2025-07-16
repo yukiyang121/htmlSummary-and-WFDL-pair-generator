@@ -1,0 +1,29 @@
+{
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "google-auth-library": "^10.1.0",
+    "node-fetch": "^3.3.2"
+  },
+  "name": "htmlsummary-and-wfdl-pair-generator",
+  "version": "1.0.0",
+  "description": "A Chrome extension that connects to a Cloudflare Worker WebSocket server and executes WFDL (Webflow Design Language) validation on Webflow Designer pages using the `wf.validateWFDL()` API.",
+  "main": "background.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yukiyang121/htmlSummary-and-WFDL-pair-generator.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/yukiyang121/htmlSummary-and-WFDL-pair-generator/issues"
+  },
+  "homepage": "https://github.com/yukiyang121/htmlSummary-and-WFDL-pair-generator#readme"
+}
