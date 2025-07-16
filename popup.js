@@ -174,7 +174,7 @@ class WFDLValidatorPopup {
       const tabId = await this.findDesignerTab();
 
       // Execute validation using chrome.scripting
-      const result = await this.executeDesignerValidation(tabId, wfdl, requestId);
+      const result = await this.executeDesignerValidation(tabId, requestId);
 
       this.logger.info('Validation completed successfully', { requestId });
       this.successCount++;
@@ -201,11 +201,10 @@ class WFDLValidatorPopup {
   /**
    * Execute validation on a Designer tab using chrome.scripting
    * @param {number} tabId - The tab ID to execute validation on
-   * @param {string} wfdl - The WFDL string to validate
    * @param {string} requestId - The request ID for tracking
    * @returns {Promise<object>} The validation result
    */
-  async executeDesignerValidation(tabId, wfdl, requestId = null) {
+  async executeDesignerValidation(tabId, requestId = null) {
     this.logger.info('Executing Designer validation via chrome.scripting', { tabId, requestId });
 
     try {
@@ -227,7 +226,6 @@ class WFDLValidatorPopup {
       const results = await chrome.scripting.executeScript({
         target: { tabId: tabId },
         func: getWFDL,
-        args: [wfdl],
         world: 'MAIN' // Execute in the page's main world context (bypasses CSP)
       });
 
@@ -245,7 +243,6 @@ class WFDLValidatorPopup {
       const formattedResult = {
         success: true,
         requestId: requestId,
-        wfdl: wfdl,
         validationResult: result.data, // The actual validation result
         source: 'wf.exportTrainingData',
         context: {
@@ -336,17 +333,11 @@ class WFDLValidatorPopup {
   }
 
   /**
-   * Test validation with user input
+   * Get WFDL (directly connects to Chrome Extension)
    */
   // this prints stuff in the activity logger
   async testValidation() {
     // const wfdlString = document.getElementById('testWfdl').value.trim();
-    const wfdlString = "temp";
-
-    if (!wfdlString) {
-      this.logger.error('Please enter a WFDL string to validate');
-      return;
-    }
 
     this.logger.info('Starting test validation...');
     this.requestCount++;
@@ -354,7 +345,7 @@ class WFDLValidatorPopup {
 
         try {
       const tabId = await this.findDesignerTab();
-      const result = await this.executeDesignerValidation(tabId, wfdlString);
+      const result = await this.executeDesignerValidation(tabId);
 
       this.logger.info('Test validation successful!');
       this.logger.info(`Validation result: ${JSON.stringify(result.validationResult, null, 2)}`);
@@ -496,7 +487,7 @@ class WFDLValidatorPopup {
 // Function that will be injected and executed in the target page
 // This bypasses CSP by creating a script element directly in the DOM
 // This function directly changes the console. 
-function getWFDL(wfdlString) {
+function getWFDL() {
   try {
     // Create a script element to inject the code
     const script = document.createElement('script');
@@ -513,7 +504,7 @@ function getWFDL(wfdlString) {
         throw new Error('wf.exportTrainingData not available in page context');
       }
 
-      console.log('Calling wf.exportTrainingData with:', ${JSON.stringify(wfdlString)});
+      console.log('Calling wf.exportTrainingData');
       const result = wf.exportTrainingData();
       console.log('WFDL result:', result);
 
