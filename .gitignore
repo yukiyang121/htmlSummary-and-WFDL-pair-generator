@@ -1,0 +1,6 @@
+# API Configuration (contains sensitive API keys)
+api-config.js
+
+# Environment variables
+.env
+.env.local
