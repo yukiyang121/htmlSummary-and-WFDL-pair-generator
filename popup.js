@@ -3,6 +3,7 @@
  * Handles the extension's popup interface and user interactions
  */
 
+
 class WFDLValidatorPopup {
   constructor() {
     this.logger = new Logger('Popup');
@@ -43,7 +44,7 @@ class WFDLValidatorPopup {
    */
   initializeUI() {
     document.getElementById('extensionId').textContent = `Extension ID: ${this.extensionId}`;
-    document.getElementById('testWfdl').value = CONFIG.extension.defaultTestWfdl;
+    // document.getElementById('testWfdl').value = CONFIG.extension.defaultTestWfdl;
 
     this.updateConnectionStatus();
     this.updateStats();
@@ -339,7 +340,8 @@ class WFDLValidatorPopup {
    */
   // this prints stuff in the activity logger
   async testValidation() {
-    const wfdlString = document.getElementById('testWfdl').value.trim();
+    // const wfdlString = document.getElementById('testWfdl').value.trim();
+    const wfdlString = "temp";
 
     if (!wfdlString) {
       this.logger.error('Please enter a WFDL string to validate');
@@ -614,29 +616,79 @@ document.getElementById('sendToGemini').addEventListener('click', async () => {
   reader.readAsDataURL(file);
 });
 
+// Save API Key
+document.getElementById('saveApiKey').addEventListener('click', () => {
+  const key = document.getElementById('apiKeyInput').value.trim();
+  if (!key) {
+    alert("Please enter a valid API key.");
+    return;
+  }
+  chrome.storage.local.set({ geminiApiKey: key }, () => {
+    alert("API key saved.");
+  });
+});
+
+// Load stored key into input (optional UX)
+chrome.storage.local.get(['geminiApiKey'], (result) => {
+  if (result.geminiApiKey) {
+    document.getElementById('apiKeyInput').value = result.geminiApiKey;
+  }
+});
+
+
 
 async function callGeminiWithScreenshot(base64Image) {
-  // Check and preview the image in the console
+  // Return a promise because chrome.storage is async
+  return new Promise((resolve, reject) => {
+    chrome.storage.local.get(['geminiApiKey'], async (result) => {
+      const GEMINI_API_KEY = result.geminiApiKey;
 
-  // if (base64Image) {
-  //   const img = new Image();
-  //   img.src = base64Image;
-  //   return JSON.stringify({ base64Image });
-  // }
+      if (!GEMINI_API_KEY) {
+        reject(new Error('No Gemini API key found. Please save it in the extension.'));
+        return;
+      }
 
-  const response = await fetch("http://localhost:3000/generate-summary", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ base64Image })
+      // Strip "data:image/png;base64," prefix if present
+      const imageData = base64Image.replace(/^data:image\/[a-z]+;base64,/, '');
+
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [
+                { // prompt
+                  text: `You are helping me create training data for an AI that generates structured component code (WFDL) from visual summaries. 
+                          This image shows a UI component from a Webflow site. Please describe the layout, content, and structure in plain English as if you were labeling this component for training. Be concise but specific.
+                          Avoid explaining *how* to code it — just describe *what* it is.
+                          Output format: A short summary.`
+                },
+                {
+                  inline_data: {
+                    mime_type: "image/png",
+                    data: imageData
+                  }
+                }
+              ]
+            }]
+          })
+        });
+
+        if (!response.ok) {
+          const errText = await response.text();
+          reject(new Error(`Gemini API call failed: ${errText}`));
+          return;
+        }
+
+        const data = await response.json();
+        const summary = data?.candidates?.[0]?.content?.parts?.[0]?.text || "No summary returned";
+        resolve(summary);
+      } catch (err) {
+        reject(new Error(`Gemini request error: ${err.message}`));
+      }
+    });
   });
-
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Gemini call failed: ${err}`);
-  }
-
-  const data = await response.json();
-  return data.summary;
 }
