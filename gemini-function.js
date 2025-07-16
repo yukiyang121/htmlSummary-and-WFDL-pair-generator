@@ -1,6 +1,10 @@
 async function callGeminiWithScreenshot(base64Image) {
-  // Your Gemini API key - replace with your actual key
-  const GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY_HERE';
+  // Get Gemini API key from environment variables
+  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+  
+  if (!GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY not found in environment variables');
+  }
   
   // Remove the data:image/png;base64, prefix if it exists
   const imageData = base64Image.replace(/^data:image\/[a-z]+;base64,/, '');
