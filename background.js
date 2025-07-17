@@ -51,6 +51,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       sendResponse({ success: true });
       break;
 
+    case 'capture_component_screenshot':
+      handleComponentScreenshot(request, sender, sendResponse);
+      return true; // Keep message channel open for async response
+
     default:
       logger.warn('Unknown message type', { type: request.type });
       sendResponse({ success: false, error: 'Unknown message type' });
@@ -123,14 +127,86 @@ async function handleGetWFDLRequest(messageData) {
 }
 
 /**
- * Forward messages to popup (if it's open)
+ * Forward messages to popup
  * @param {object} message - The message to forward
  */
 function forwardToPopup(message) {
-  chrome.runtime.sendMessage(message).catch(error => {
-    // Popup might not be open, which is fine
-    logger.debug('Could not forward to popup', { error: error.message });
-  });
+  // This is a placeholder for forwarding to popup
+  // In practice, popup would need to maintain a connection
+  logger.debug('Forwarding message to popup', { type: message.type });
+}
+
+/**
+ * Handle component screenshot capture requests
+ * @param {object} request - The screenshot request
+ * @param {object} sender - The sender information  
+ * @param {function} sendResponse - The response function
+ */
+async function handleComponentScreenshot(request, sender, sendResponse) {
+  try {
+    logger.info('Handling component screenshot request', { 
+      componentId: request.componentId, 
+      tabId: request.tabId 
+    });
+
+    // First, prepare the component for screenshot in the content script
+    const prepResult = await chrome.tabs.sendMessage(request.tabId, {
+      type: 'prepare_component_screenshot',
+      componentId: request.componentId,
+      options: request.options || {}
+    });
+
+    if (!prepResult.success) {
+      throw new Error(prepResult.error || 'Failed to prepare component for screenshot');
+    }
+
+    // Capture the visible tab
+    const screenshotDataUrl = await chrome.tabs.captureVisibleTab(
+      undefined, // Use current window
+      { format: 'png', quality: 100 }
+    );
+
+    // Send the coordinates back to content script to crop the image
+    const cropResult = await chrome.tabs.sendMessage(request.tabId, {
+      type: 'crop_component_screenshot',
+      screenshotDataUrl: screenshotDataUrl,
+      componentBounds: prepResult.componentBounds,
+      componentId: request.componentId
+    });
+
+    if (!cropResult.success) {
+      throw new Error(cropResult.error || 'Failed to crop component screenshot');
+    }
+
+    // Clean up any highlighting in the content script
+    chrome.tabs.sendMessage(request.tabId, {
+      type: 'cleanup_component_screenshot',
+      componentId: request.componentId
+    }).catch(err => logger.warn('Cleanup failed', err));
+
+    sendResponse({
+      success: true,
+      screenshot: cropResult.croppedImage,
+      componentId: request.componentId,
+      bounds: prepResult.componentBounds
+    });
+
+  } catch (error) {
+    logger.error('Component screenshot failed', { error: error.message });
+    
+    // Clean up on error
+    if (request.tabId) {
+      chrome.tabs.sendMessage(request.tabId, {
+        type: 'cleanup_component_screenshot',
+        componentId: request.componentId
+      }).catch(() => {});
+    }
+
+    sendResponse({
+      success: false,
+      error: error.message
+    });
+  }
 }
 
 /**

@@ -18,7 +18,7 @@ class WFDLValidatorPopup {
   }
 
   /**
-   * Initialize the popup
+   * Initialize popup
    */
   async init() {
     this.logger.info('Initializing popup UI');
@@ -58,6 +58,7 @@ class WFDLValidatorPopup {
     document.getElementById('connectBtn').addEventListener('click', () => this.connect());
     document.getElementById('disconnectBtn').addEventListener('click', () => this.disconnect());
     document.getElementById('testBtn').addEventListener('click', () => this.testValidation());
+    document.getElementById('captureComponentBtn').addEventListener('click', () => this.captureComponent());
   }
 
   /**
@@ -333,20 +334,29 @@ class WFDLValidatorPopup {
   }
 
   /**
-   * Get WFDL (directly connects to Chrome Extension)
+   * Test WFDL validation on current page
    */
-  // this prints stuff in the activity logger
   async testValidation() {
-    // const wfdlString = document.getElementById('testWfdl').value.trim();
+    try {
+      this.logger.info('Testing WFDL validation');
 
-    this.logger.info('Starting test validation...');
-    this.requestCount++;
-    this.updateStats();
+      // Get the active tab first
+      const tab = await this.findDesignerTab();
+      
+      if (!tab) {
+        throw new Error('No Webflow Designer tabs found - validation requires Designer page');
+      }
 
-        try {
-      const tabId = await this.findDesignerTab();
-      const result = await this.executeDesignerValidation(tabId);
+      // const wfdlString = document.getElementById('testWfdl').value.trim();
+      const wfdlString = '';
 
+      this.requestCount++;
+      this.updateStats();
+
+      // Execute validation using the validation executor
+      const result = await this.executeDesignerValidation(tab.id, wfdlString);
+
+      // NOTE: This validation result format differs from WebSocket server format  
       this.logger.info('Test validation successful!');
       this.logger.info(`Validation result: ${JSON.stringify(result.validationResult, null, 2)}`);
 
@@ -358,6 +368,140 @@ class WFDLValidatorPopup {
 
     } catch (error) {
       this.logger.error(`Test validation failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Capture screenshot of a specific component
+   */
+  async captureComponent() {
+    try {
+      this.logger.info('Capturing component screenshot');
+
+      // Get component ID from input
+      const componentId = document.getElementById('componentIdInput').value.trim();
+      if (!componentId) {
+        alert('Please enter a component ID');
+        return;
+      }
+
+      // Get screenshot options
+      const options = {
+        highlight: document.getElementById('highlightComponent').checked,
+        scrollIntoView: document.getElementById('scrollToComponent').checked,
+        padding: parseInt(document.getElementById('screenshotPadding').value) || 10
+      };
+
+      // Get the active tab
+      const tabId = await this.findDesignerTab();
+      if (!tabId) {
+        throw new Error('No Webflow Designer tabs found - screenshot requires Designer page');
+      }
+
+      // Show loading state
+      const resultDiv = document.getElementById('componentScreenshotResult');
+      resultDiv.innerHTML = '<div class="loading">Capturing component screenshot...</div>';
+
+      // Send screenshot request to background script
+      const response = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({
+          type: 'capture_component_screenshot',
+          componentId: componentId,
+          tabId: tabId,
+          options: options
+        }, (response) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else {
+            resolve(response);
+          }
+        });
+      });
+
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to capture component screenshot');
+      }
+
+      // Display the screenshot result
+      this.displayComponentScreenshot(response, componentId);
+
+      this.logger.info('Component screenshot captured successfully', { componentId });
+
+    } catch (error) {
+      this.logger.error(`Component screenshot failed: ${error.message}`);
+      
+      const resultDiv = document.getElementById('componentScreenshotResult');
+      resultDiv.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+    }
+  }
+
+  /**
+   * Display the captured component screenshot
+   * @param {object} screenshotResult - The screenshot result from background script
+   * @param {string} componentId - The component ID
+   */
+  displayComponentScreenshot(screenshotResult, componentId) {
+    const resultDiv = document.getElementById('componentScreenshotResult');
+    
+    const screenshotHtml = `
+      <div class="screenshot-result">
+        <h4>Component Screenshot: ${componentId}</h4>
+        <div class="screenshot-info">
+          <small>
+            Size: ${screenshotResult.bounds.width}×${screenshotResult.bounds.height}px
+            | Position: (${Math.round(screenshotResult.bounds.x)}, ${Math.round(screenshotResult.bounds.y)})
+          </small>
+        </div>
+        <div class="screenshot-image">
+          <img src="${screenshotResult.screenshot}" alt="Component Screenshot" style="max-width: 100%; border: 1px solid #ddd; margin-top: 10px;" />
+        </div>
+        <div class="screenshot-actions">
+          <button onclick="window.popupInstance.downloadComponentScreenshot('${screenshotResult.screenshot}', '${componentId}')" class="action-btn">
+            Download
+          </button>
+          <button onclick="window.popupInstance.copyScreenshotToClipboard('${screenshotResult.screenshot}')" class="action-btn">
+            Copy to Clipboard
+          </button>
+        </div>
+      </div>
+    `;
+    
+    resultDiv.innerHTML = screenshotHtml;
+  }
+
+  /**
+   * Download component screenshot
+   * @param {string} dataUrl - The screenshot data URL
+   * @param {string} componentId - The component ID
+   */
+  downloadComponentScreenshot(dataUrl, componentId) {
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = `component-${componentId}-${new Date().getTime()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  /**
+   * Copy screenshot to clipboard
+   * @param {string} dataUrl - The screenshot data URL
+   */
+  async copyScreenshotToClipboard(dataUrl) {
+    try {
+      // Convert data URL to blob
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+      
+      // Copy to clipboard
+      await navigator.clipboard.write([
+        new ClipboardItem({ 'image/png': blob })
+      ]);
+      
+      alert('Screenshot copied to clipboard!');
+    } catch (error) {
+      console.error('Failed to copy screenshot to clipboard:', error);
+      alert('Failed to copy to clipboard. You can right-click the image to copy it manually.');
     }
   }
 
@@ -550,29 +694,11 @@ function getWFDL() {
   }
 }
 
-// Initialize the popup when DOM is ready
+// Initialize popup when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-  // Load required scripts
-  const scripts = [
-    'config.js',
-    'utils/logger.js',
-    'utils/websocket-manager.js'
-  ];
-
-  let loadedScripts = 0;
-
-  scripts.forEach(script => {
-    const scriptElement = document.createElement('script');
-    scriptElement.src = script;
-    scriptElement.onload = () => {
-      loadedScripts++;
-      if (loadedScripts === scripts.length) {
-        // All scripts loaded, initialize popup
-        new WFDLValidatorPopup();
-      }
-    };
-    document.head.appendChild(scriptElement);
-  });
+  const popup = new WFDLValidatorPopup();
+  // Make popup instance globally accessible for onclick handlers
+  window.popupInstance = popup;
 });
 
 

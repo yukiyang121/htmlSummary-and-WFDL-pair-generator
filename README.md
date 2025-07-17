@@ -6,6 +6,9 @@ A Chrome extension that connects to a Cloudflare Worker WebSocket server and exe
 
 - **WebSocket Communication**: Real-time connection to Cloudflare Worker for validation requests
 - **WFDL Validation**: Execute `wf.validateWFDL()` directly on Webflow Designer pages
+- **Component Screenshot**: Capture screenshots of specific Webflow components by ID
+- **Activity Logging**: Real-time logging of validation requests and responses
+- **Multi-tab Support**: Automatically detects and works with Webflow Designer tabs
 - **CSP Bypass**: Uses script injection to bypass Content Security Policy restrictions
 - **Test Interface**: Built-in test UI for manual validation testing
 - **Debug Tools**: Comprehensive debugging and diagnostic information
@@ -33,6 +36,50 @@ chrome-extension/
 │   ├── icon48.png
 │   └── icon128.png
 └── 📄 README.md              # This file
+```
+
+## Component Screenshot Functionality
+
+The extension now includes the ability to capture screenshots of individual Webflow components by their ID.
+
+### How to Use Component Screenshots
+
+1. **Open a Webflow Designer page** in Chrome
+2. **Open the extension popup** (click the extension icon)
+3. **Enter a Component ID** in the "Component Screenshot" section
+4. **Configure options** (optional):
+   - ✅ **Highlight component**: Adds a red border to the component during capture
+   - ✅ **Scroll to component**: Automatically scrolls the component into view
+   - **Padding**: Adds extra space around the component (default: 10px)
+5. **Click "Capture Component"** to take the screenshot
+
+### Component ID Sources
+
+Component IDs can be found from:
+- The **component validation results** displayed in the extension popup
+- Webflow's internal `data-w-id` attributes
+- Component IDs from the WFDL validation output
+
+### Screenshot Features
+
+- **Automatic Component Detection**: Uses multiple strategies to find components:
+  - `data-w-id` attributes (primary)
+  - `data-component-id` attributes
+  - Standard `id` attributes
+  - Webflow internal APIs (if available)
+- **Visual Highlighting**: Temporarily highlights the target component with a red border
+- **Smart Cropping**: Captures only the component area with configurable padding
+- **Download & Copy**: Save screenshots or copy them to clipboard
+- **Error Handling**: Clear error messages if components can't be found
+
+### Example Usage
+
+```
+1. Run WFDL validation to get component IDs
+2. Copy a component ID from the results (e.g., "abc123")
+3. Paste it into the Component ID field
+4. Click "Capture Component"
+5. Download or copy the resulting screenshot
 ```
 
 ## 🏗️ Architecture
